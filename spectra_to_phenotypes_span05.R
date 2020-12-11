@@ -1,6 +1,6 @@
 #!/usr/bin/env Rscript
 
-#SCRIPT TO OUTPUT PHENOTYPES FROM SPECTRA
+# SCRIPT TO OUTPUT PHENOTYPES FROM SPECTRA
 # Based on CLR v. 1.05, R. Montgomerie
 
 library(argparser,quietly=T)
@@ -19,8 +19,8 @@ lambda_max = as.numeric(argv$lambda_max) # max wavelength
 strans = argv$folder # folder to search
 
 today = format(Sys.Date(),"%Y%m%d")
-binsize = 1 #bin size in nm
-pattern = "*.txt" #which files it picks to process from 'fold'
+binsize = 1 # bin size in nm
+pattern = "*.txt" # which files it picks to process from 'fold'
 
 
 out_file = file.path(strans,paste0('output_',lambda_min,'_to_',lambda_max,'_binsize_',binsize,'_',today,'_',basename(strans),'.csv'))
@@ -28,11 +28,11 @@ print('saving in file')
 print(out_file)
 
 
-#define the functions to read the spectrum files
+# define the functions to read the spectrum files
 read_txt_to_table<-function(f){
   lns<-readLines(f)
-  brkpt<-grep('>',lns) #find the last line of the header
-  head<-grepl('>',lns) #a vector the length of the file with 'true' if brkpt
+  brkpt<-grep('>',lns) # find the last line of the header
+  head<-grepl('>',lns) # a vector the length of the file with 'true' if brkpt
   head[1:brkpt]=TRUE
   spc<-read.table(text=lns[!head])
   r<-list('header' = lns[head],'dat'=spc)
@@ -87,44 +87,44 @@ calc_phenos <- function(df,xmin){
 }
 
 
-#Read in the list of files to process
+# Read in the list of files to process
 fs<-list.files(strans,pattern='*.txt')
 print('Including data from files:')
 print(fs)
-#define the wavelengths/bins:
+# define the wavelengths/bins:
 xs = seq(lambda_min,lambda_max,binsize)
 
-#Get rid of any preexisting data frame named 'out_df'
+# Get rid of any preexisting data frame named 'out_df'
 if(exists('out_df')){rm(out_df)}
 
-#Set up the output file
+# Set up the output file
 out_df <- data.frame()
 
-#For each spectrum file:
+# For each spectrum file:
 for(i in 1:length(fs)){
   
-  #read in the data and separate the header and data
+  # read in the data and separate the header and data
   fl<-read_txt_to_table(file.path(strans,fs[i]))
   spc<-fl$dat #the data only
   
-  #Smooth the data with loess method, span = 0.05; very little smoothing.
+  # Smooth the data with loess method, span = 0.05; very little smoothing.
   Sm<-refine_and_smooth(spc,xs)
   Y<-Sm$y
   
   # Calculate the phenotypes, based on Montgomerie CLR v 1.05 
   dout <- calc_phenos(Sm, min(Sm$x))
   
-  #Use the header to get the file name and Date (Time = Date, as in CLR Vars)
+  # Use the header to get the file name and Date (Time = Date, as in CLR Vars)
   filename = str_sub(strsplit(fl$header[1],' ')[[1]][3],1,-5)
   d = strsplit(fl$header[3],'Date: ')[[1]][2]
   
-  #Add the smoothed data to the output data frame
+  # Add the smoothed data to the output data frame
   out_df<-rbind(out_df,data.frame('file'=filename,'folder'=strans,'date'=d,
                                   'Brightness'=dout[1], 'Hue'=dout[2], 'Saturation' = dout[3],
                                   'min_lambda' = min(Sm$x)))
 }
 
-#Write the combined data frame to the output folder as a csv
+# Write the combined data frame to the output folder as a csv
 write.csv(out_df,out_file,row.names=F)
 
 
